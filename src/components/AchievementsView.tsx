@@ -2,16 +2,22 @@ import React from 'react';
 import { ACHIEVEMENTS_LIST, Badge } from '../utils/achievements';
 import { BookOpen, Flame, Compass, ChevronDown, Recycle, Sparkles, Lock } from 'lucide-react';
 
+/** Props for the AchievementsView component. */
 interface AchievementsViewProps {
-  readonly unlockedState: Record<string, string | null>;
+  /** Map of achievement IDs to unlock date string or null if locked */
+  readonly unlockedState: Readonly<Record<string, string | null>>;
 }
 
 /**
- * Renders the field badges and milestones milestones panel.
+ * Renders the collectible achievements, field badges, and milestones panel.
+ * 
+ * Inspects the unlocked status of each badge in ACHIEVEMENTS_LIST and displays
+ * unlock timestamps formatted in Indian locale standards.
+ *
  * @param {AchievementsViewProps} props - Component props containing unlocked achievements state
- * @returns {React.ReactElement} The achievements list view
+ * @returns {React.ReactElement} The achievements list view component
  */
-export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedState }) => {
+function AchievementsView({ unlockedState }: AchievementsViewProps): React.ReactElement {
   // Map icon names to components
   const iconMap: Record<string, React.ReactNode> = {
     BookOpen: <BookOpen className="w-8 h-8" />,
@@ -23,7 +29,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedStat
 
   /**
    * Generates localized unlock status text.
-   * @param {string} badgeId - The ID of the badge
+   * 
+   * @param {string} badgeId - The ID of the badge to inspect
    * @returns {string} The unlock date or 'Locked' status text
    */
   const getStatusText = (badgeId: string): string => {
@@ -54,7 +61,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedStat
 
       {/* Badges Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-        {ACHIEVEMENTS_LIST.map((badge: Badge) => {
+        {ACHIEVEMENTS_LIST.map((badge: Badge): React.ReactElement => {
           const isUnlocked = !!unlockedState[badge.id];
           const statusText = getStatusText(badge.id);
 
@@ -121,4 +128,6 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedStat
 
     </div>
   );
-};
+}
+
+export default AchievementsView;

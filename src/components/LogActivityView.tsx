@@ -12,12 +12,14 @@ import {
 } from '../utils/validation';
 import { Activity, ActivityCategory } from '../types';
 import { PenTool, Bike, Zap, Apple, Trash2, CheckCircle2 } from 'lucide-react';
-import { TransportForm } from './TransportForm';
-import { EnergyForm } from './EnergyForm';
-import { FoodForm } from './FoodForm';
-import { WasteForm } from './WasteForm';
+import TransportForm from './TransportForm';
+import EnergyForm from './EnergyForm';
+import FoodForm from './FoodForm';
+import WasteForm from './WasteForm';
 
+/** Props for the LogActivityView component. */
 interface LogActivityViewProps {
+  /** Callback triggered when a new activity log has been successfully calculated and validated */
   readonly onAddActivity: (activity: Activity) => void;
 }
 
@@ -25,10 +27,13 @@ type TabType = ActivityCategory;
 
 /**
  * Renders the form panel to log daily activities for Transport, Energy, Food, and Waste.
+ * 
+ * Each category contains fields validated against schemas before being logged and stored.
+ *
  * @param {LogActivityViewProps} props - Component props containing the callback to log activities
- * @returns {React.ReactElement} The form submission interface
+ * @returns {React.ReactElement} The form submission interface component
  */
-export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity }) => {
+function LogActivityView({ onAddActivity }: LogActivityViewProps): React.ReactElement {
   const [activeTab, setActiveTab] = useState<TabType>('transport');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -75,7 +80,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
     setErrors({});
 
     // SECURITY: Debounce form submission by 500ms to allow animations/clicks to settle
-    setTimeout(() => {
+    setTimeout((): void => {
       const id = crypto.randomUUID();
       let validatedDetails: TransportFormInput | EnergyFormInput | FoodFormInput | WasteFormInput | null = null;
       let categoryName = '';
@@ -89,7 +94,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
           });
           if (!parsed.success) {
             const errs: Record<string, string> = {};
-            parsed.error.issues.forEach(err => {
+            parsed.error.issues.forEach((err): void => {
               if (err.path[0]) errs[err.path[0] as string] = err.message;
             });
             setErrors(errs);
@@ -105,7 +110,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
           });
           if (!parsed.success) {
             const errs: Record<string, string> = {};
-            parsed.error.issues.forEach(err => {
+            parsed.error.issues.forEach((err): void => {
               if (err.path[0]) errs[err.path[0] as string] = err.message;
             });
             setErrors(errs);
@@ -123,7 +128,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
           const parsed = foodSchema.safeParse(foodForm);
           if (!parsed.success) {
             const errs: Record<string, string> = {};
-            parsed.error.issues.forEach(err => {
+            parsed.error.issues.forEach((err): void => {
               if (err.path[0]) errs[err.path[0] as string] = err.message;
             });
             setErrors(errs);
@@ -136,7 +141,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
           const parsed = wasteSchema.safeParse(wasteForm);
           if (!parsed.success) {
             const errs: Record<string, string> = {};
-            parsed.error.issues.forEach(err => {
+            parsed.error.issues.forEach((err): void => {
               if (err.path[0]) errs[err.path[0] as string] = err.message;
             });
             setErrors(errs);
@@ -176,15 +181,16 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
             setWasteForm({ level: 'medium', segregated: false });
           }
         } catch (saveError: unknown) {
-          // SECURITY: Gracefully present limit-exceeded errors to user without causing app crash
-          const msg = saveError instanceof Error ? saveError.message : 'Daily entry limit reached';
-          setErrors({ submit: msg });
+          const message = saveError instanceof Error ? saveError.message : 'Daily entry limit reached';
+          console.error('[LogActivityView/handleSubmit/onAddActivity]', message);
+          setErrors({ submit: message });
         }
-      } catch (err) {
-        console.error('Submission error:', err);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error occurred';
+        console.error('[LogActivityView/handleSubmit]', message);
       } finally {
         // SECURITY: Hold submit lock for 1 second after processing to prevent rapid duplicate posts
-        setTimeout(() => {
+        setTimeout((): void => {
           setIsSubmitting(false);
         }, 1000);
       }
@@ -228,7 +234,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
               id="log-date"
               value={date}
               max={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e): void => setDate(e.target.value)}
               className="w-full md:w-64 px-3 py-2 border border-moss/44 bg-paper/30 rounded-md focus:border-clay focus:ring-1 focus:ring-clay font-mono-journal text-sm"
               required
             />
@@ -242,7 +248,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
             <div className="grid grid-cols-4 gap-2 border border-moss/30 p-1 rounded-lg bg-paper/50">
               <button
                 type="button"
-                onClick={() => handleTabChange('transport')}
+                onClick={(): void => handleTabChange('transport')}
                 className={`py-2 px-1 text-xs md:text-sm font-medium rounded-md flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${
                   activeTab === 'transport' 
                     ? 'bg-clay text-white shadow-sm' 
@@ -256,7 +262,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
 
               <button
                 type="button"
-                onClick={() => handleTabChange('energy')}
+                onClick={(): void => handleTabChange('energy')}
                 className={`py-2 px-1 text-xs md:text-sm font-medium rounded-md flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${
                   activeTab === 'energy' 
                     ? 'bg-clay text-white shadow-sm' 
@@ -270,7 +276,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
 
               <button
                 type="button"
-                onClick={() => handleTabChange('food')}
+                onClick={(): void => handleTabChange('food')}
                 className={`py-2 px-1 text-xs md:text-sm font-medium rounded-md flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${
                   activeTab === 'food' 
                     ? 'bg-clay text-white shadow-sm' 
@@ -284,7 +290,7 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
 
               <button
                 type="button"
-                onClick={() => handleTabChange('waste')}
+                onClick={(): void => handleTabChange('waste')}
                 className={`py-2 px-1 text-xs md:text-sm font-medium rounded-md flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${
                   activeTab === 'waste' 
                     ? 'bg-clay text-white shadow-sm' 
@@ -360,4 +366,6 @@ export const LogActivityView: React.FC<LogActivityViewProps> = ({ onAddActivity 
       </div>
     </div>
   );
-};
+}
+
+export default LogActivityView;

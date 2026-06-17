@@ -1,31 +1,36 @@
 import React, { useState, useMemo } from 'react';
 import { Activity, ActivityCategory } from '../types';
-import { TreeRingChart } from './TreeRingChart';
+import TreeRingChart from './TreeRingChart';
 import { NATIONAL_AVERAGE_WEEKLY_CO2, NATIONAL_AVERAGE_MONTHLY_CO2 } from '../data/emissionFactors';
 import { aggregateEmissions } from '../utils/calculations';
 import { BookOpen, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
-import { ErrorBoundary } from './ErrorBoundary';
+import ErrorBoundary from './ErrorBoundary';
 
+/** Props for the DashboardView component. */
 interface DashboardViewProps {
-  readonly activities: Activity[];
+  /** Array of logged activities to compile summaries and concentric tree rings */
+  readonly activities: readonly Activity[];
+  /** Callback triggering redirect navigation to the activity logging view */
   readonly onNavigateToLog: () => void;
+  /** Callback triggering redirect navigation to the insights recommendations view */
   readonly onNavigateToInsights: () => void;
 }
 
 /**
  * Renders the dashboard view including the signature tree-ring chart, carbon footprint totals, and baseline comparison.
- * @param {DashboardViewProps} props - The component props
- * @returns {React.ReactElement} The dashboard overview page
+ *
+ * @param {DashboardViewProps} props - Props containing activities and navigation handlers
+ * @returns {React.ReactElement} The dashboard overview page component
  */
-export const DashboardView: React.FC<DashboardViewProps> = ({
+function DashboardView({
   activities,
   onNavigateToLog,
   onNavigateToInsights
-}) => {
+}: DashboardViewProps): React.ReactElement {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
 
   // Filter activities based on the selected period (relative to today's date)
-  const filteredActivities = useMemo((): Activity[] => {
+  const filteredActivities = useMemo((): readonly Activity[] => {
     const today = new Date();
     today.setHours(23, 59, 59, 999); // end of today
     
@@ -37,7 +42,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       cutoff.setDate(today.getDate() - 30);
     }
 
-    return activities.filter((act: Activity) => {
+    return activities.filter((act: Activity): boolean => {
       const parts = act.date.split('-');
       if (parts.length !== 3) return false;
       const year = parseInt(parts[0], 10);
@@ -70,14 +75,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
 
     // Find highest category
-    const categories: { name: ActivityCategory; val: number }[] = [
+    const categories: { readonly name: ActivityCategory; readonly val: number }[] = [
       { name: 'transport', val: transport },
       { name: 'energy', val: energy },
       { name: 'food', val: food },
       { name: 'waste', val: waste }
     ];
-    categories.sort((a, b) => b.val - a.val);
-    const primary = categories[0];
+    const sortedCategories = [...categories].sort((a, b) => b.val - a.val);
+    const primary = sortedCategories[0];
     const pct = Math.round((primary.val / total) * 100);
 
     let advice = "";
@@ -112,7 +117,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Period Selector */}
         <div className="mt-4 md:mt-0 flex items-center space-x-1 border border-moss/30 p-0.5 rounded-lg bg-paper-dark">
           <button
-            onClick={() => setPeriod('week')}
+            onClick={(): void => setPeriod('week')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
               period === 'week' 
                 ? 'bg-clay text-white shadow-sm' 
@@ -123,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Weekly view
           </button>
           <button
-            onClick={() => setPeriod('month')}
+            onClick={(): void => setPeriod('month')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
               period === 'month' 
                 ? 'bg-clay text-white shadow-sm' 
@@ -267,4 +272,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     </div>
   );
-};
+}
+
+export default DashboardView;

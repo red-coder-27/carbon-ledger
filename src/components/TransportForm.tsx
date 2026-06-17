@@ -2,18 +2,25 @@ import React from 'react';
 import { TransportFormInput } from '../utils/validation';
 import { TransportMode } from '../data/emissionFactors';
 
+/** Props for the TransportForm component. */
 interface TransportFormProps {
+  /** The current values inside the transport logging inputs */
   readonly value: Partial<TransportFormInput>;
+  /** Callback updater function to modify input state */
   readonly onChange: (updater: (prev: Partial<TransportFormInput>) => Partial<TransportFormInput>) => void;
-  readonly errors: Record<string, string>;
+  /** Map of validation errors for transport fields */
+  readonly errors: Readonly<Record<string, string>>;
 }
 
 /**
  * Sub-component for rendering the Transport logging form.
+ * 
+ * Renders mode select dropdown and distance number inputs.
+ *
  * @param {TransportFormProps} props - Component props containing form values, setter, and validation errors
- * @returns {React.ReactElement} The transport form inputs
+ * @returns {React.ReactElement} The transport form inputs component
  */
-export const TransportForm: React.FC<TransportFormProps> = ({ value, onChange, errors }) => {
+function TransportForm({ value, onChange, errors }: TransportFormProps): React.ReactElement {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col space-y-2">
@@ -23,7 +30,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({ value, onChange, e
         <select
           id="t-mode"
           value={value.mode || 'car-petrol'}
-          onChange={(e) => onChange(prev => ({ ...prev, mode: e.target.value as TransportMode }))}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => 
+            onChange((prev: Partial<TransportFormInput>): Partial<TransportFormInput> => ({
+              ...prev,
+              mode: e.target.value as TransportMode
+            }))
+          }
           className="w-full px-3 py-2 border border-moss/45 bg-white rounded-md focus:border-clay text-sm"
         >
           <option value="car-petrol">Petrol Car</option>
@@ -48,9 +60,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({ value, onChange, e
           id="t-distance"
           placeholder="e.g. 15"
           value={value.distance === undefined ? '' : value.distance}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
             const val = e.target.value;
-            onChange(prev => ({ ...prev, distance: val === '' ? undefined : Number(val) }));
+            onChange((prev: Partial<TransportFormInput>): Partial<TransportFormInput> => ({
+              ...prev,
+              distance: val === '' ? undefined : Number(val)
+            }));
           }}
           className={`w-full px-3 py-2 border rounded-md focus:border-clay font-mono-journal text-sm ${
             errors.distance ? 'border-red-500 bg-red-50/20' : 'border-moss/45'
@@ -70,4 +85,6 @@ export const TransportForm: React.FC<TransportFormProps> = ({ value, onChange, e
       </div>
     </div>
   );
-};
+}
+
+export default TransportForm;

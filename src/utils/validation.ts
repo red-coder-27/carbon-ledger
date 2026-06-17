@@ -1,17 +1,36 @@
 import { z } from 'zod';
 
-// SECURITY: Sanitized safe string schema to prevent script injection
-const safeString = z.string()
+/**
+ * Sanitized safe string schema to prevent script injection.
+ * 
+ * Trims whitespace, sets a maximum length of 1024 characters, and rejects
+ * strings containing brackets, parentheses, slashes, or angle tags.
+ */
+const safeString: z.ZodType<string, z.ZodTypeDef, unknown> = z.string()
   .trim()
   .max(1024, "Input too long")
   .refine(
-    val => !/[<>{}()\[\]\\\/]/.test(val),
+    (val: string): boolean => !/[<>{}()\[\]\\\/]/.test(val),
     "Input contains invalid characters"
   );
 
-// SECURITY: Coerced safe number validation to prevent NaN, Infinity, and overflow
-const safeCoercedNumber = (maxVal: number, errMsg: string, invalidMsg: string) => z.preprocess(
-  (val) => {
+/**
+ * Helper to generate a preprocessed coerced number validation schema.
+ * 
+ * Converts empty strings to 0, maps inputs to numbers, checks for finite values,
+ * and asserts that the resulting number is non-negative and below a designated max limit.
+ *
+ * @param {number} maxVal - The maximum allowed number value
+ * @param {string} errMsg - Error message to display when the value exceeds maxVal
+ * @param {string} invalidMsg - Error message to display when the input is not a number
+ * @returns {z.ZodType<number, z.ZodTypeDef, unknown>} A Zod validation schema for coerced numbers
+ *
+ * @example
+ * safeCoercedNumber(100, "Exceeded limit", "Must be a number").parse("45")
+ * // returns 45
+ */
+const safeCoercedNumber = (maxVal: number, errMsg: string, invalidMsg: string): z.ZodType<number, z.ZodTypeDef, unknown> => z.preprocess(
+  (val: unknown): unknown => {
     if (typeof val === 'string' && val === '') return 0;
     const num = Number(val);
     return isNaN(num) ? val : num;
@@ -22,9 +41,13 @@ const safeCoercedNumber = (maxVal: number, errMsg: string, invalidMsg: string) =
     .max(maxVal, errMsg)
 );
 
-// SECURITY: Safe LPG integer checks
-const safeLpgNumber = z.preprocess(
-  (val) => {
+/**
+ * Safe LPG refill count validator.
+ * 
+ * Restricts LPG refills to integers between 0 and 10.
+ */
+const safeLpgNumber: z.ZodType<number, z.ZodTypeDef, unknown> = z.preprocess(
+  (val: unknown): unknown => {
     if (typeof val === 'string' && val === '') return 0;
     const num = Number(val);
     return isNaN(num) ? val : num;
@@ -36,10 +59,15 @@ const safeLpgNumber = z.preprocess(
     .max(10, "LPG refills cannot exceed 10 cylinders")
 );
 
-// SECURITY: Prevent date manipulation (e.g. logging dates in the far future or past)
-const safeDateString = z.string()
+/**
+ * Safe date string validator.
+ * 
+ * Validates date formatted as YYYY-MM-DD. Enforces boundaries to ensure
+ * logs cannot be more than 1 day in the future or older than 1 year.
+ */
+const safeDateString: z.ZodType<string, z.ZodTypeDef, unknown> = z.string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (must be YYYY-MM-DD)")
-  .refine(val => {
+  .refine((val: string): boolean => {
     const d = new Date(val);
     if (isNaN(d.getTime())) return false;
     const now = new Date();
@@ -68,7 +96,7 @@ export const transportSchema = z.object({
     'flight-international',
     'bicycle',
     'walking'
-  ], { errorMap: () => ({ message: "Please select a valid transport mode" }) }),
+  ], { errorMap: (): { readonly message: string } => ({ message: "Please select a valid transport mode" }) }),
   distance: safeCoercedNumber(1000, "Distance cannot exceed 1000 km per day", "Distance must be a number")
 });
 
@@ -90,19 +118,19 @@ export const foodSchema = z.object({
     'eggetarian',
     'non-veg-moderate',
     'non-veg-heavy'
-  ], { errorMap: () => ({ message: "Please select a diet type" }) })
+  ], { errorMap: (): { readonly message: string } => ({ message: "Please select a diet type" }) })
 });
 
 /**
  * Validation schema for waste activities.
  */
 export const wasteSchema = z.object({
-  level: z.enum(['low', 'medium', 'high'], { errorMap: () => ({ message: "Please select a waste level" }) }),
+  level: z.enum(['low', 'medium', 'high'], { errorMap: (): { readonly message: string } => ({ message: "Please select a waste level" }) }),
   segregated: z.boolean().default(false)
 });
 
 /**
- * Validation schema for a single activity.
+ * Validation schema for a single activity log entry.
  */
 export const activitySchema = z.object({
   id: safeString,
@@ -113,12 +141,12 @@ export const activitySchema = z.object({
 });
 
 /**
- * Validation schema for a list of activities.
+ * Validation schema for a list of activity entries.
  */
 export const activityListSchema = z.array(activitySchema);
 
 /**
- * Validation schema for achievements locked/unlocked state.
+ * Validation schema for achievements locked/unlocked state mapping.
  */
 export const achievementsStateSchema = z.record(z.string(), z.string().nullable());
 

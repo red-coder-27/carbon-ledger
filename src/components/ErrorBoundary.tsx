@@ -1,45 +1,50 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 
-interface Props {
-  children: ReactNode;
+/** Props for the ErrorBoundary component. */
+interface ErrorBoundaryProps {
+  /** React child nodes to be wrapped by the boundary */
+  readonly children: ReactNode;
 }
 
-interface State {
-  hasError: boolean;
+/** State for the ErrorBoundary component. */
+interface ErrorBoundaryState {
+  /** True if a rendering crash was caught in the child subtree, false otherwise */
+  readonly hasError: boolean;
 }
 
 /**
  * A top-level Error Boundary component to catch React rendering crashes
  * and display a user-friendly fallback UI.
  */
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
     hasError: false
   };
 
   /**
    * Catches errors in child components and updates state to trigger fallback UI.
+   * 
    * @param {Error} _ - The error that was thrown
-   * @returns {State} The updated state showing an error occurred
+   * @returns {ErrorBoundaryState} The updated state showing an error occurred
    */
-  public static getDerivedStateFromError(_: Error): State {
-    // Update state so the next render will show the fallback UI.
+  public static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
   }
 
   /**
    * Logs error details to console.error for debugging purposes.
+   * 
    * @param {Error} error - The error object
    * @param {ErrorInfo} errorInfo - The React ErrorInfo object containing component stack
    * @returns {void}
    */
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // SECURITY: Logging errors to console.error is safe in this context for debugging.
     console.error("ErrorBoundary caught an error", error, errorInfo);
   }
 
   /**
    * Renders the children components or fallback UI if a crash happened.
+   * 
    * @returns {ReactNode} The rendered children or fallback UI
    */
   public render(): ReactNode {
@@ -54,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Please refresh the page or try navigating back to the main ledger dashboard.
           </p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={(): void => window.location.reload()}
             className="px-4 py-2 bg-clay text-white text-xs font-bold rounded-lg hover:bg-clay-dark transition"
           >
             Refresh Page
@@ -66,3 +71,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

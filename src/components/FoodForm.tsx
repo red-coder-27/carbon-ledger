@@ -2,17 +2,23 @@ import React from 'react';
 import { FoodFormInput } from '../utils/validation';
 import { DietType } from '../data/emissionFactors';
 
+/** Props for the FoodForm component. */
 interface FoodFormProps {
+  /** The current values inside the food diet logging inputs */
   readonly value: Partial<FoodFormInput>;
+  /** Callback updater function to modify input state */
   readonly onChange: (updater: (prev: Partial<FoodFormInput>) => Partial<FoodFormInput>) => void;
 }
 
 /**
  * Sub-component for rendering the Food logging form.
+ * 
+ * Renders diet options selection list with radio buttons.
+ *
  * @param {FoodFormProps} props - Component props containing form values and setter
- * @returns {React.ReactElement} The food form radio buttons
+ * @returns {React.ReactElement} The food form radio buttons component
  */
-export const FoodForm: React.FC<FoodFormProps> = ({ value, onChange }) => {
+function FoodForm({ value, onChange }: FoodFormProps): React.ReactElement {
   return (
     <div className="space-y-4 animate-fade-in">
       <span className="block text-sm font-medium text-ink">
@@ -25,7 +31,7 @@ export const FoodForm: React.FC<FoodFormProps> = ({ value, onChange }) => {
           { value: 'eggetarian', label: 'Eggetarian', desc: 'Eggs and dairy, no meat (approx. 2.1 kg CO₂e/day)' },
           { value: 'non-veg-moderate', label: 'Moderate Non-Veg', desc: 'Some meat/fish (approx. 3.3 kg CO₂e/day)' },
           { value: 'non-veg-heavy', label: 'Heavy Non-Veg', desc: 'Frequent meat/red meat (approx. 5.6 kg CO₂e/day)' },
-        ].map((option) => (
+        ].map((option): React.ReactElement => (
           <label
             key={option.value}
             className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -39,7 +45,7 @@ export const FoodForm: React.FC<FoodFormProps> = ({ value, onChange }) => {
               name="dietType"
               value={option.value}
               checked={value.dietType === option.value}
-              onChange={() => onChange(() => ({ dietType: option.value as DietType }))}
+              onChange={(): void => onChange((): Partial<FoodFormInput> => ({ dietType: option.value as DietType }))}
               className="mt-1 mr-3 text-clay focus:ring-clay"
             />
             <div className="text-sm">
@@ -51,4 +57,6 @@ export const FoodForm: React.FC<FoodFormProps> = ({ value, onChange }) => {
       </div>
     </div>
   );
-};
+}
+
+export default FoodForm;

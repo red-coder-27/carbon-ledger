@@ -2,26 +2,34 @@ import React, { useState } from 'react';
 import { EnergyFormInput } from '../utils/validation';
 import { Calculator } from 'lucide-react';
 
+/** Props for the EnergyForm component. */
 interface EnergyFormProps {
+  /** The current values inside the energy logging inputs */
   readonly value: Partial<EnergyFormInput>;
+  /** Callback updater function to modify input state */
   readonly onChange: (updater: (prev: Partial<EnergyFormInput>) => Partial<EnergyFormInput>) => void;
-  readonly errors: Record<string, string>;
+  /** Map of validation errors for energy fields */
+  readonly errors: Readonly<Record<string, string>>;
 }
 
 /**
  * Sub-component for rendering the Energy logging form.
+ * 
+ * Renders electricity kWh consumption and LPG cylinder refills inputs.
+ * Includes a quick estimator tool.
+ *
  * @param {EnergyFormProps} props - Component props containing form values, setter, and validation errors
- * @returns {React.ReactElement} The energy form inputs
+ * @returns {React.ReactElement} The energy form inputs component
  */
-export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors }) => {
-  const [showEstimator, setShowEstimator] = useState(false);
+function EnergyForm({ value, onChange, errors }: EnergyFormProps): React.ReactElement {
+  const [showEstimator, setShowEstimator] = useState<boolean>(false);
   const [estHouseholdSize, setEstHouseholdSize] = useState<number>(2);
   const [estAcHours, setEstAcHours] = useState<number>(4);
 
   const applyEstimation = (): void => {
     // Estimating daily kWh: base load per member (2 kWh) + AC cooling load (1.8 kWh per hour)
     const computedKwh = (estHouseholdSize * 2.0) + (estAcHours * 1.8);
-    onChange(prev => ({
+    onChange((prev: Partial<EnergyFormInput>): Partial<EnergyFormInput> => ({
       ...prev,
       electricity: Number(computedKwh.toFixed(1))
     }));
@@ -37,7 +45,7 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
           </label>
           <button
             type="button"
-            onClick={() => setShowEstimator(!showEstimator)}
+            onClick={(): void => setShowEstimator(!showEstimator)}
             className="text-xs text-clay hover:underline flex items-center gap-1 font-semibold"
           >
             <Calculator className="w-3.5 h-3.5" />
@@ -54,7 +62,7 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
                 <select 
                   id="est-members"
                   value={estHouseholdSize}
-                  onChange={(e) => setEstHouseholdSize(Number(e.target.value))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => setEstHouseholdSize(Number(e.target.value))}
                   className="px-2 py-1 border border-moss/30 bg-white text-xs rounded"
                 >
                   <option value="1">1 Person</option>
@@ -68,7 +76,7 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
                 <select 
                   id="est-ac"
                   value={estAcHours}
-                  onChange={(e) => setEstAcHours(Number(e.target.value))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => setEstAcHours(Number(e.target.value))}
                   className="px-2 py-1 border border-moss/30 bg-white text-xs rounded"
                 >
                   <option value="0">No AC</option>
@@ -93,9 +101,12 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
           id="e-electricity"
           placeholder="e.g. 8"
           value={value.electricity === undefined ? '' : value.electricity}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
             const val = e.target.value;
-            onChange(prev => ({ ...prev, electricity: val === '' ? undefined : Number(val) }));
+            onChange((prev: Partial<EnergyFormInput>): Partial<EnergyFormInput> => ({
+              ...prev,
+              electricity: val === '' ? undefined : Number(val)
+            }));
           }}
           className={`w-full px-3 py-2 border rounded-md focus:border-clay font-mono-journal text-sm ${
             errors.electricity ? 'border-red-500 bg-red-50/20' : 'border-moss/45'
@@ -124,9 +135,12 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
           placeholder="e.g. 1"
           step="any"
           value={value.lpg === undefined ? '' : value.lpg}
-          onChange={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
             const val = e.target.value;
-            onChange(prev => ({ ...prev, lpg: val === '' ? undefined : Number(val) }));
+            onChange((prev: Partial<EnergyFormInput>): Partial<EnergyFormInput> => ({
+              ...prev,
+              lpg: val === '' ? undefined : Number(val)
+            }));
           }}
           className={`w-full px-3 py-2 border rounded-md focus:border-clay font-mono-journal text-sm ${
             errors.lpg ? 'border-red-500 bg-red-50/20' : 'border-moss/45'
@@ -146,4 +160,6 @@ export const EnergyForm: React.FC<EnergyFormProps> = ({ value, onChange, errors 
       </div>
     </div>
   );
-};
+}
+
+export default EnergyForm;

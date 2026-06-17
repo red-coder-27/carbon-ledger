@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { LogActivityView } from '../components/LogActivityView';
-import { DashboardView } from '../components/DashboardView';
-import { InsightsView } from '../components/InsightsView';
+import LogActivityView from '../components/LogActivityView';
+import DashboardView from '../components/DashboardView';
+import InsightsView from '../components/InsightsView';
 import { Activity } from '../types';
 import React from 'react';
 

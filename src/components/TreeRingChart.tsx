@@ -1,88 +1,40 @@
 import React from 'react';
+import { getTreeRingData, TreeRingData } from '../utils/treeRingData';
 
+/**
+ * Props for the TreeRingChart component.
+ */
 interface TreeRingChartProps {
+  /** Total transport emissions logged for the period (in kg CO₂e) */
   readonly transport: number;
+  /** Total energy emissions logged for the period (in kg CO₂e) */
   readonly energy: number;
+  /** Total diet/food emissions logged for the period (in kg CO₂e) */
   readonly food: number;
+  /** Total waste emissions logged for the period (in kg CO₂e) */
   readonly waste: number;
+  /** Grand total emissions across all categories combined (in kg CO₂e) */
   readonly total: number;
-}
-
-interface TreeRingData {
-  readonly id: string;
-  readonly name: string;
-  readonly radius: number;
-  readonly strokeWidth: number;
-  readonly color: string;
-  readonly percentage: number;
-  readonly value: number;
-  readonly bgClass: string;
 }
 
 /**
  * Renders a circular concentric tree-ring visualization of carbon emissions.
- * @param {TreeRingChartProps} props - The component props containing emissions per category
- * @returns {React.ReactElement} The circular tree-ring chart component
+ * 
+ * Each concentric ring matches a category (Transport, Energy, Food, Waste).
+ * The length of each ring corresponds to its relative contribution to the total.
+ * Includes a text panel in the center displaying the absolute total footprint.
+ *
+ * @param {TreeRingChartProps} props - Props containing emissions values per category and total sum
+ * @returns {React.ReactElement} Concentric SVG-based tree-ring carbon chart
  */
-export const TreeRingChart: React.FC<TreeRingChartProps> = ({
+function TreeRingChart({
   transport,
   energy,
   food,
   waste,
   total
-}) => {
-  // Prevent division by zero
-  const safeTotal = total > 0 ? total : 1;
-
-  // Calculate percentages
-  const pctTransport = (transport / safeTotal) * 100;
-  const pctEnergy = (energy / safeTotal) * 100;
-  const pctFood = (food / safeTotal) * 100;
-  const pctWaste = (waste / safeTotal) * 100;
-
-  // Ring configurations: radius, stroke width, color, percentage, category name
-  const rings: readonly TreeRingData[] = [
-    {
-      id: 'transport',
-      name: 'Transport',
-      radius: 80,
-      strokeWidth: 10,
-      color: '#C75D3A', // Clay
-      percentage: pctTransport,
-      value: transport,
-      bgClass: 'bg-clay'
-    },
-    {
-      id: 'energy',
-      name: 'Energy',
-      radius: 64,
-      strokeWidth: 9,
-      color: '#6B8E7F', // Moss
-      percentage: pctEnergy,
-      value: energy,
-      bgClass: 'bg-moss'
-    },
-    {
-      id: 'food',
-      name: 'Food',
-      radius: 48,
-      strokeWidth: 8,
-      color: '#1B3A2B', // Ink
-      percentage: pctFood,
-      value: food,
-      bgClass: 'bg-ink'
-    },
-    {
-      id: 'waste',
-      name: 'Waste',
-      radius: 32,
-      strokeWidth: 7,
-      color: '#4F8A5B', // Leaf
-      percentage: pctWaste,
-      value: waste,
-      bgClass: 'bg-leaf'
-    }
-  ];
+}: TreeRingChartProps): React.ReactElement {
+  const rings = getTreeRingData(transport, energy, food, waste, total);
 
   return (
     <div className="flex flex-col items-center justify-center p-4">
@@ -93,7 +45,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
           className="w-full h-full transform -rotate-90"
         >
           {/* Subtle paper-like concentric circles underneath for guides */}
-          {rings.map((ring) => (
+          {rings.map((ring: TreeRingData) => (
             <circle
               key={`guide-${ring.id}`}
               cx="100"
@@ -107,10 +59,9 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
           ))}
 
           {/* Active concentric tree rings */}
-          {rings.map((ring) => {
+          {rings.map((ring: TreeRingData) => {
             const circumference = 2 * Math.PI * ring.radius;
             // Map percentage to a stroke dashoffset.
-            // If total emissions are 0, draw just a tiny 2% notch or nothing (let's do 0).
             const activePercent = total > 0 ? ring.percentage : 0;
             const strokeDashoffset = circumference - (activePercent / 100) * circumference;
 
@@ -150,7 +101,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       <div className="sr-only">
         <h4>Emissions Breakdown (Tree Ring Chart):</h4>
         <ul>
-          {rings.map(ring => (
+          {rings.map((ring: TreeRingData): React.ReactElement => (
             <li key={`sr-${ring.id}`}>
               {ring.name}: {ring.value.toFixed(1)} kg CO₂e ({ring.percentage.toFixed(0)}%)
             </li>
@@ -161,7 +112,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
 
       {/* Legible visual legend */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 text-xs font-sans">
-        {rings.map((ring) => (
+        {rings.map((ring: TreeRingData): React.ReactElement => (
           <div key={`legend-${ring.id}`} className="flex items-center space-x-2">
             <span
               className={`w-3.5 h-3.5 rounded-full inline-block ${ring.bgClass}`}
@@ -174,4 +125,6 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       </div>
     </div>
   );
-};
+}
+
+export default TreeRingChart;

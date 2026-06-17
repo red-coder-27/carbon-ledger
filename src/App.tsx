@@ -1,11 +1,9 @@
-import React, { useState, useMemo, Suspense } from 'react';
-import { getSavedActivities, saveActivities, getSavedAchievements, saveAchievements } from './utils/storage';
-import { checkAchievements } from './utils/achievements';
-import { Activity } from './types';
-import { DashboardView } from './components/DashboardView';
-import { LogActivityView } from './components/LogActivityView';
-import { InsightsView } from './components/InsightsView';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import React, { useState, Suspense } from 'react';
+import { useActivityLog } from './hooks/useActivityLog';
+import DashboardView from './components/DashboardView';
+import LogActivityView from './components/LogActivityView';
+import InsightsView from './components/InsightsView';
+import ErrorBoundary from './components/ErrorBoundary';
 import { 
   Book, 
   LayoutDashboard, 
@@ -16,14 +14,13 @@ import {
   Globe 
 } from 'lucide-react';
 
-// Lazy load larger subviews to keep the initial bundle small and fast
 const LazyHistoryView = React.lazy(() => 
-  import('./components/HistoryView').then(m => ({ default: m.HistoryView }))
+  import('./components/HistoryView').then((m) => ({ default: m.default }))
 );
 (LazyHistoryView as unknown as { displayName: string }).displayName = 'LazyHistoryView';
 
 const LazyAchievementsView = React.lazy(() => 
-  import('./components/AchievementsView').then(m => ({ default: m.AchievementsView }))
+  import('./components/AchievementsView').then((m) => ({ default: m.default }))
 );
 (LazyAchievementsView as unknown as { displayName: string }).displayName = 'LazyAchievementsView';
 
@@ -32,54 +29,19 @@ type ActiveView = 'dashboard' | 'log-activity' | 'insights' | 'history' | 'achie
 /**
  * Main application component that manages navigation state, activity logging,
  * achievement unlocking, and synchronization with storage.
- * @returns {React.ReactElement} The main app structure
+ * 
+ * @returns {React.ReactElement} The main app structure component
  */
 function App(): React.ReactElement {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
 
-  // Load activities and achievements from validated localStorage
-  const [activities, setActivities] = useState<Activity[]>(() => getSavedActivities());
-  const [achievements, setAchievements] = useState<Record<string, string | null>>(() => getSavedAchievements());
-
-  // Handle adding a new activity
-  const handleAddActivity = (newActivity: Activity): void => {
-    setActivities(prev => {
-      const updated = [...prev, newActivity];
-      saveActivities(updated);
-
-      // Re-evaluate achievements immediately based on updated activities
-      setAchievements(currentAchievements => {
-        const nextAchievements = checkAchievements(updated, currentAchievements);
-        saveAchievements(nextAchievements);
-        return nextAchievements;
-      });
-
-      return updated;
-    });
-  };
-
-  // Handle deleting an activity
-  const handleDeleteActivity = (id: string): void => {
-    setActivities(prev => {
-      const updated = prev.filter(act => act.id !== id);
-      saveActivities(updated);
-
-      // Re-evaluate achievements immediately based on remaining activities
-      setAchievements(() => {
-        // We reset achievements state and compute fresh so achievements can lock/unlock appropriately if entries are deleted
-        const freshAchievements = checkAchievements(updated, {});
-        saveAchievements(freshAchievements);
-        return freshAchievements;
-      });
-
-      return updated;
-    });
-  };
-
-  // Derive unlocked count
-  const unlockedCount = useMemo((): number => {
-    return Object.values(achievements).filter(Boolean).length;
-  }, [achievements]);
+  const {
+    activities,
+    achievements,
+    handleAddActivity,
+    handleDeleteActivity,
+    unlockedCount
+  } = useActivityLog();
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, badge: undefined },
@@ -128,7 +90,7 @@ function App(): React.ReactElement {
               return (
                 <li key={tab.id}>
                   <button
-                    onClick={() => setActiveView(tab.id as ActiveView)}
+                    onClick={(): void => setActiveView(tab.id as ActiveView)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                       isActive 
                         ? 'bg-clay text-white shadow-sm font-bold' 
@@ -178,7 +140,7 @@ function App(): React.ReactElement {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveView(tab.id as ActiveView)}
+              onClick={(): void => setActiveView(tab.id as ActiveView)}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-md transition-all relative w-1/5 ${
                 isActive ? 'text-clay font-bold scale-105' : 'text-graphite'
               }`}
@@ -209,8 +171,8 @@ function App(): React.ReactElement {
             <ErrorBoundary>
               <DashboardView 
                 activities={activities} 
-                onNavigateToLog={() => setActiveView('log-activity')}
-                onNavigateToInsights={() => setActiveView('insights')}
+                onNavigateToLog={(): void => setActiveView('log-activity')}
+                onNavigateToInsights={(): void => setActiveView('insights')}
               />
             </ErrorBoundary>
           )}

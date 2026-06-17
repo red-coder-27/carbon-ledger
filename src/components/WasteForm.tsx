@@ -2,17 +2,23 @@ import React from 'react';
 import { WasteFormInput } from '../utils/validation';
 import { WasteLevel } from '../data/emissionFactors';
 
+/** Props for the WasteForm component. */
 interface WasteFormProps {
+  /** The current values inside the waste logging inputs */
   readonly value: Partial<WasteFormInput>;
+  /** Callback updater function to modify input state */
   readonly onChange: (updater: (prev: Partial<WasteFormInput>) => Partial<WasteFormInput>) => void;
 }
 
 /**
  * Sub-component for rendering the Waste logging form.
+ * 
+ * Renders estimated waste volume select box and segregation checkbox.
+ *
  * @param {WasteFormProps} props - Component props containing form values and setter
- * @returns {React.ReactElement} The waste form inputs
+ * @returns {React.ReactElement} The waste form inputs component
  */
-export const WasteForm: React.FC<WasteFormProps> = ({ value, onChange }) => {
+function WasteForm({ value, onChange }: WasteFormProps): React.ReactElement {
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex flex-col space-y-2">
@@ -22,7 +28,12 @@ export const WasteForm: React.FC<WasteFormProps> = ({ value, onChange }) => {
         <select
           id="w-level"
           value={value.level || 'medium'}
-          onChange={(e) => onChange(prev => ({ ...prev, level: e.target.value as WasteLevel }))}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => 
+            onChange((prev: Partial<WasteFormInput>): Partial<WasteFormInput> => ({
+              ...prev,
+              level: e.target.value as WasteLevel
+            }))
+          }
           className="w-full px-3 py-2 border border-moss/45 bg-white rounded-md focus:border-clay text-sm"
         >
           <option value="low">Low (less than 1 kg)</option>
@@ -37,7 +48,12 @@ export const WasteForm: React.FC<WasteFormProps> = ({ value, onChange }) => {
             id="w-segregated"
             type="checkbox"
             checked={!!value.segregated}
-            onChange={(e) => onChange(prev => ({ ...prev, segregated: e.target.checked }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>): void => 
+              onChange((prev: Partial<WasteFormInput>): Partial<WasteFormInput> => ({
+                ...prev,
+                segregated: e.target.checked
+              }))
+            }
             className="w-4 h-4 text-clay border-moss/40 rounded focus:ring-clay"
           />
         </div>
@@ -52,4 +68,6 @@ export const WasteForm: React.FC<WasteFormProps> = ({ value, onChange }) => {
       </div>
     </div>
   );
-};
+}
+
+export default WasteForm;

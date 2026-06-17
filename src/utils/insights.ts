@@ -1,22 +1,40 @@
 import { Activity, Recommendation, ActivityCategory, TransportDetails, EnergyDetails, FoodDetails, WasteDetails } from '../types';
 import { EMISSION_FACTORS } from '../data/emissionFactors';
 
-interface InsightsResult {
+/**
+ * Result structure returned by the recommendation engine.
+ */
+export interface InsightsResult {
+  /** The activity category with the largest carbon footprint, or 'none' if empty */
   readonly highestCategory: ActivityCategory | 'none';
+  /** Actionable recommendations ordered by impact first, then relevance */
   readonly recommendations: readonly Recommendation[];
-  readonly categoryTotals: Record<ActivityCategory, number>;
+  /** Breakdown of carbon totals (in kg CO₂e) per category over the last 7 days */
+  readonly categoryTotals: Readonly<Record<ActivityCategory, number>>;
 }
 
 /**
- * Generates recommendations based on the user's logged activities in the last 7 days.
- * If no activities exist, it returns a set of default starter recommendations.
- * @param {Activity[]} activities - The full array of user activities
- * @returns {InsightsResult} The generated insights and tailored recommendations
+ * Generates tailored recommendations based on the user's logged activities in the last 7 days.
+ * 
+ * Aggregates emissions per category, identifies the highest impact driver, and evaluates
+ * rules against user choices to offer suggestions. If no activities are present,
+ * returns standard default recommendations.
+ *
+ * @param {readonly Activity[]} activities - The full array of logged activities
+ * @returns {InsightsResult} The generated insights and ranked recommendations
+ *
  * @example
- * generateInsights([]) // returns default starter recommendations
+ * generateInsights([])
+ * // returns default starter recommendations and 'none' highest category
+ *
+ * @example
+ * generateInsights([
+ *   { id: '1', date: '2026-06-15', category: 'food', details: { dietType: 'non-veg-heavy' }, emissions: 5.6 }
+ * ])
+ * // returns insights identifying 'food' as highest category and food recommendations
  */
-export function generateInsights(activities: Activity[]): InsightsResult {
-  const categoryTotals = {
+export function generateInsights(activities: readonly Activity[]): InsightsResult {
+  const categoryTotals: Record<ActivityCategory, number> = {
     transport: 0,
     energy: 0,
     food: 0,
@@ -33,22 +51,22 @@ export function generateInsights(activities: Activity[]): InsightsResult {
   }
 
   // Find the date of the latest activity to set as our time anchor
-  const dates = activities.map(a => new Date(a.date).getTime());
+  const dates = activities.map((a: Activity): number => new Date(a.date).getTime());
   const latestTimestamp = Math.max(...dates);
   const oneWeekAgo = latestTimestamp - 7 * 24 * 60 * 60 * 1000;
 
   // Filter activities to the last 7 days of active logs
-  const recentActivities = activities.filter(a => new Date(a.date).getTime() >= oneWeekAgo);
+  const recentActivities = activities.filter((a: Activity): boolean => new Date(a.date).getTime() >= oneWeekAgo);
 
   // Aggregate emissions for these 7 days
-  recentActivities.forEach(act => {
+  recentActivities.forEach((act: Activity): void => {
     categoryTotals[act.category] += act.emissions;
   });
 
   // Determine highest impact category
   let highestCategory: ActivityCategory = 'transport';
   let maxEmissions = -1;
-  (Object.keys(categoryTotals) as ActivityCategory[]).forEach(cat => {
+  (Object.keys(categoryTotals) as ActivityCategory[]).forEach((cat: ActivityCategory): void => {
     if (categoryTotals[cat] > maxEmissions) {
       maxEmissions = categoryTotals[cat];
       highestCategory = cat;
@@ -59,16 +77,15 @@ export function generateInsights(activities: Activity[]): InsightsResult {
   const recommendations: Recommendation[] = [];
 
   // --- TRANSPORT RULES ---
-  const transportActivities = recentActivities.filter(a => a.category === 'transport');
+  const transportActivities = recentActivities.filter((a: Activity): boolean => a.category === 'transport');
   let petrolDistance = 0;
   let dieselDistance = 0;
   let evDistance = 0;
   let twoWheelerDistance = 0;
   let flightDomesticDistance = 0;
-  let flightIntlDistance = 0;
   let shortTripsCount = 0; // trips <= 5km by fossil fuel
 
-  transportActivities.forEach(a => {
+  transportActivities.forEach((a: Activity): void => {
     const d = a.details as TransportDetails;
     if (!d) return;
     if (d.mode === 'car-petrol') petrolDistance += d.distance;
@@ -76,7 +93,6 @@ export function generateInsights(activities: Activity[]): InsightsResult {
     if (d.mode === 'car-ev') evDistance += d.distance;
     if (d.mode === 'two-wheeler') twoWheelerDistance += d.distance;
     if (d.mode === 'flight-domestic') flightDomesticDistance += d.distance;
-    if (d.mode === 'flight-international') flightIntlDistance += d.distance;
     if (['car-petrol', 'car-diesel', 'two-wheeler'].includes(d.mode) && d.distance <= 5) {
       shortTripsCount += 1;
     }
@@ -154,13 +170,12 @@ export function generateInsights(activities: Activity[]): InsightsResult {
     });
   }
 
-
   // --- ENERGY RULES ---
-  const energyActivities = recentActivities.filter(a => a.category === 'energy');
+  const energyActivities = recentActivities.filter((a: Activity): boolean => a.category === 'energy');
   let totalElectricity = 0;
   let totalLpg = 0;
 
-  energyActivities.forEach(a => {
+  energyActivities.forEach((a: Activity): void => {
     const d = a.details as EnergyDetails;
     if (!d) return;
     totalElectricity += d.electricity || 0;
@@ -215,15 +230,14 @@ export function generateInsights(activities: Activity[]): InsightsResult {
     });
   }
 
-
   // --- FOOD RULES ---
-  const foodActivities = recentActivities.filter(a => a.category === 'food');
+  const foodActivities = recentActivities.filter((a: Activity): boolean => a.category === 'food');
   let nonVegHeavyDays = 0;
   let nonVegModDays = 0;
   let eggetarianDays = 0;
   let vegetarianDays = 0;
 
-  foodActivities.forEach(a => {
+  foodActivities.forEach((a: Activity): void => {
     const d = a.details as FoodDetails;
     if (!d) return;
     if (d.dietType === 'non-veg-heavy') nonVegHeavyDays += 1;
@@ -280,15 +294,14 @@ export function generateInsights(activities: Activity[]): InsightsResult {
     });
   }
 
-
   // --- WASTE RULES ---
-  const wasteActivities = recentActivities.filter(a => a.category === 'waste');
+  const wasteActivities = recentActivities.filter((a: Activity): boolean => a.category === 'waste');
   let mixedWasteDays = 0;
   let highWasteDays = 0;
   let mediumWasteDays = 0;
   let segregatedWasteDays = 0;
 
-  wasteActivities.forEach(a => {
+  wasteActivities.forEach((a: Activity): void => {
     const d = a.details as WasteDetails;
     if (!d) return;
     if (d.segregated === false) mixedWasteDays += 1;
@@ -298,7 +311,6 @@ export function generateInsights(activities: Activity[]): InsightsResult {
   });
 
   if (mixedWasteDays >= 2) {
-    // Difference between mixed and segregated waste is roughly 0.4 - 0.8 depending on level
     const savings = mixedWasteDays * 0.6; 
     recommendations.push({
       id: 'w_segregation',
@@ -316,7 +328,7 @@ export function generateInsights(activities: Activity[]): InsightsResult {
       id: 'w_reduce_volume',
       category: 'waste',
       title: 'Reduce Waste through Meal Planning',
-      description:highWasteDays.toString() + ' high volume waste days logged. Planning meals and storage helps cut organic waste volume.',
+      description: highWasteDays.toString() + ' high volume waste days logged. Planning meals and storage helps cut organic waste volume.',
       savings: Number(savings.toFixed(1)),
       actionableText: 'Audit your fridge before shopping and write a strict list to prevent over-buying.'
     });
@@ -346,15 +358,12 @@ export function generateInsights(activities: Activity[]): InsightsResult {
     });
   }
 
-  // Filter recommendations to prioritize the highest-impact category's suggestions,
-  // but ensure a total of 3-5 suggestions, ranked by savings descending.
-  
   // Sort all generated recommendations by savings descending
-  let finalRecommendations = recommendations.sort((a, b) => b.savings - a.savings);
+  const finalRecommendations = recommendations.sort((a: Recommendation, b: Recommendation): number => b.savings - a.savings);
 
   // Group by category to pull the highest-impact category first
-  const highestCategoryRecs = finalRecommendations.filter(r => r.category === highestCategory);
-  const otherRecs = finalRecommendations.filter(r => r.category !== highestCategory);
+  const highestCategoryRecs = finalRecommendations.filter((r: Recommendation): boolean => r.category === highestCategory);
+  const otherRecs = finalRecommendations.filter((r: Recommendation): boolean => r.category !== highestCategory);
 
   // Combine them, putting highest category's recommendations at the top
   const orderedRecs = [...highestCategoryRecs, ...otherRecs];
@@ -362,13 +371,13 @@ export function generateInsights(activities: Activity[]): InsightsResult {
   // Slice to get 3-5 recommendations (we'll show top 4 if available)
   let slicedRecs = orderedRecs.slice(0, 4);
 
-  // If we ended up with less than 3 recommendations, add some general ones from the highest category or default set
+  // If we ended up with less than 3 recommendations, add some general ones
   if (slicedRecs.length < 3) {
     const defaultRecs = getDefaultRecommendations();
     const tempRecs = [...slicedRecs];
     for (const r of defaultRecs) {
       if (tempRecs.length >= 3) break;
-      if (!tempRecs.some(fr => fr.id === r.id)) {
+      if (!tempRecs.some((fr: Recommendation): boolean => fr.id === r.id)) {
         tempRecs.push(r);
       }
     }
@@ -383,12 +392,18 @@ export function generateInsights(activities: Activity[]): InsightsResult {
 }
 
 /**
- * Returns default educational recommendations when no data has been logged.
- * @returns {Recommendation[]} Standard set of default starter recommendations
+ * Returns a list of default educational recommendations.
+ * 
+ * These recommendations serve as static advice items when no user entries
+ * have been registered in the database yet.
+ *
+ * @returns {readonly Recommendation[]} Standard list of default starter recommendations
+ *
  * @example
- * getDefaultRecommendations() // returns [ { id: 'def_transit', ... }, ... ]
+ * getDefaultRecommendations()
+ * // returns list of default recommendations (e.g. 'def_transit', 'def_energy', etc.)
  */
-export function getDefaultRecommendations(): Recommendation[] {
+export function getDefaultRecommendations(): readonly Recommendation[] {
   return [
     {
       id: 'def_transit',

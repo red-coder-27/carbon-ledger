@@ -13,42 +13,54 @@ import {
   CartesianGrid 
 } from 'recharts';
 import { History, Table, Activity as ChartIcon, Trash2 } from 'lucide-react';
-import { ErrorBoundary } from './ErrorBoundary';
+import ErrorBoundary from './ErrorBoundary';
 
+/** Props for the HistoryView component. */
 interface HistoryViewProps {
-  readonly activities: Activity[];
+  /** Array of logged daily activity entries to construct historical charts and lists */
+  readonly activities: readonly Activity[];
+  /** Callback triggering deletion of a specific ledger log entry by ID */
   readonly onDeleteActivity: (id: string) => void;
 }
 
+/** Row structure representing daily aggregated emissions for charting. */
 interface ChartRow {
+  /** ISO date string formatted as YYYY-MM-DD */
   readonly date: string;
+  /** Locally formatted date string (e.g. '18 Jun') */
   readonly formattedDate: string;
+  /** Aggregated transport emissions in kg CO₂e */
   readonly transport: number;
+  /** Aggregated energy emissions in kg CO₂e */
   readonly energy: number;
+  /** Aggregated dietary choices emissions in kg CO₂e */
   readonly food: number;
+  /** Aggregated waste generation emissions in kg CO₂e */
   readonly waste: number;
+  /** Aggregate total emissions across all categories combined in kg CO₂e */
   readonly total: number;
 }
 
 /**
- * Renders the historical carbon ledger logs and trend charts.
- * @param {HistoryViewProps} props - The component props containing activities and deletion handler
- * @returns {React.ReactElement} The history view component
+ * Renders the historical carbon ledger logs, trend curves, and tabular summaries.
+ *
+ * @param {HistoryViewProps} props - Props containing activities logs and deletion callback
+ * @returns {React.ReactElement} The history view dashboard tab component
  */
-export const HistoryView: React.FC<HistoryViewProps> = ({ 
+function HistoryView({ 
   activities,
   onDeleteActivity
-}) => {
+}: HistoryViewProps): React.ReactElement {
   const [chartType, setChartType] = useState<'stacked' | 'line'>('stacked');
   const [showTable, setShowTable] = useState<boolean>(false);
 
   // Group activities by date and category
-  const chartData = useMemo((): ChartRow[] => {
+  const chartData = useMemo((): readonly ChartRow[] => {
     if (activities.length === 0) return [];
 
     const dateMap: Record<string, Record<ActivityCategory | 'total', number>> = {};
 
-    activities.forEach((act: Activity) => {
+    activities.forEach((act: Activity): void => {
       const dateStr = act.date;
       if (!dateMap[dateStr]) {
         dateMap[dateStr] = {
@@ -65,15 +77,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
     // Convert to sorted array
     return Object.entries(dateMap)
-      .map(([date, values]) => ({
+      .map(([date, values]): ChartRow => ({
         date,
         formattedDate: new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         ...values
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a: ChartRow, b: ChartRow): number => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [activities]);
 
-  const categoryLabels = {
+  const categoryLabels: Record<ActivityCategory, string> = {
     transport: 'Transport',
     energy: 'Energy',
     food: 'Diet',
@@ -117,7 +129,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         {/* View Toggles */}
         <div className="mt-4 md:mt-0 flex items-center space-x-2">
           <button
-            onClick={() => setChartType(chartType === 'stacked' ? 'line' : 'stacked')}
+            onClick={(): void => setChartType(chartType === 'stacked' ? 'line' : 'stacked')}
             className="px-3.5 py-1.5 border border-moss/30 hover:bg-moss/10 text-xs font-semibold rounded-md flex items-center gap-1.5 transition"
             aria-label={`Toggle chart style. Current: ${chartType === 'stacked' ? 'Stacked Area' : 'Line Trend'}`}
           >
@@ -126,7 +138,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </button>
           
           <button
-            onClick={() => setShowTable(!showTable)}
+            onClick={(): void => setShowTable(!showTable)}
             className="px-3.5 py-1.5 border border-moss/30 hover:bg-moss/10 text-xs font-semibold rounded-md flex items-center gap-1.5 transition"
             aria-pressed={showTable}
           >
@@ -149,7 +161,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'stacked' ? (
                 <AreaChart
-                  data={chartData}
+                  data={chartData as ChartRow[]}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
@@ -166,7 +178,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   />
                   <Legend 
                     wrapperStyle={{ fontSize: 12, paddingTop: 10 }}
-                    formatter={(value) => <span className="text-ink font-semibold">{categoryLabels[value as ActivityCategory] || value}</span>}
+                    formatter={(value: string): React.ReactNode => (
+                      <span className="text-ink font-semibold">
+                        {categoryLabels[value as ActivityCategory] || value}
+                      </span>
+                    )}
                   />
                   <Area 
                     type="monotone" 
@@ -203,7 +219,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 </AreaChart>
               ) : (
                 <LineChart
-                  data={chartData}
+                  data={chartData as ChartRow[]}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
@@ -261,7 +277,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-moss/10 font-mono-journal text-xs">
-                {chartData.map((row: ChartRow) => (
+                {chartData.map((row: ChartRow): React.ReactElement => (
                   <tr key={row.date} className="hover:bg-paper/30 text-ink">
                     <td className="py-2 px-3 font-sans font-medium">{row.formattedDate}</td>
                     <td className="py-2 px-3 text-right">{row.transport.toFixed(1)}</td>
@@ -285,7 +301,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </h3>
         
         <div className="divide-y divide-moss/10 max-h-96 overflow-y-auto pr-2">
-          {activities.slice().sort((a: Activity, b: Activity) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((act: Activity) => {
+          {[...activities].sort((a: Activity, b: Activity) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((act: Activity): React.ReactElement => {
             let label = "";
             if (act.category === 'transport') {
               const details = act.details as TransportDetails;
@@ -316,7 +332,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     +{act.emissions.toFixed(1)} kg CO₂e
                   </span>
                   <button
-                    onClick={() => onDeleteActivity(act.id)}
+                    onClick={(): void => onDeleteActivity(act.id)}
                     className="p-1.5 text-graphite hover:text-red-600 rounded hover:bg-red-50 focus:ring-1 focus:ring-red-400"
                     title="Delete Entry"
                     aria-label={`Delete ${act.category} entry from ${act.date}`}
@@ -332,4 +348,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
     </div>
   );
-};
+}
+
+export default HistoryView;
