@@ -18,7 +18,7 @@ Carbon Ledger helps individuals **understand, track, and reduce their carbon foo
 
 ### 📝 Log Activity
 - **Transport** — 9 travel modes (Petrol Car, Diesel Car, EV, Bus, Train/Metro, Two-Wheeler, Domestic Flight, International Flight, Bicycle, Walking) with distance in km
-- **Energy** — electricity (kWh) and LPG cylinder usage
+- **Energy** — electricity (kWh) and LPG cylinder usage (with built-in Household Size and AC Usage quick estimate assistants)
 - **Diet** — 5 daily diet patterns (Vegan → Non-veg Heavy) with per-day emission factors
 - **Waste** — volume level (Low/Medium/High) × segregation status (Yes/No)
 - All inputs validated with Zod — friendly inline errors, never a crash
@@ -47,6 +47,55 @@ Carbon Ledger helps individuals **understand, track, and reduce their carbon foo
 
 ---
 
+## 📁 Project Structure
+
+```
+carbon-ledger/
+├── dist/                  # Built static production files
+├── public/                # Static public assets
+├── src/
+│   ├── components/        # React UI components & forms
+│   │   ├── AchievementsView.tsx  # Achievements view sub-screen
+│   │   ├── DashboardView.tsx     # Main dashboard view
+│   │   ├── EnergyForm.tsx        # Energy input form sub-component
+│   │   ├── ErrorBoundary.tsx     # Render crash-safety wrapper
+│   │   ├── FoodForm.tsx          # Food input form sub-component
+│   │   ├── HistoryView.tsx       # Logs table and Recharts area chart
+│   │   ├── InsightsView.tsx      # Ranked actionable recommendations
+│   │   ├── LogActivityView.tsx   # Entry logging tab layout
+│   │   ├── TransportForm.tsx     # Transport input form sub-component
+│   │   ├── TreeRingChart.tsx     # SVG dynamic Concentric Tree Rings
+│   │   └── WasteForm.tsx         # Waste input form sub-component
+│   ├── data/
+│   │   └── emissionFactors.ts    # Documented emission constants
+│   ├── hooks/
+│   │   └── useDebounce.ts        # Custom debounce utility hook
+│   ├── test/                     # Vitest test files
+│   │   ├── calculations.test.ts
+│   │   ├── components.test.tsx
+│   │   └── insights.test.ts
+│   ├── types/
+│   │   └── index.ts              # Global TypeScript models
+│   ├── utils/
+│   │   ├── achievements.ts       # Badge unlocking conditions
+│   │   ├── calculations.ts       # Emission calculation pure formulas
+│   │   ├── insights.ts           # Recommendation generation rules
+│   │   ├── storage.ts            # Rate-limited local storage layer
+│   │   └── validation.ts         # Zod schemas & sanitization
+│   ├── App.css
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── LICENSE                # MIT License
+├── package.json
+├── README.md
+├── SECURITY.md
+├── tailwind.config.js
+└── vite.config.ts
+```
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
@@ -56,7 +105,7 @@ Carbon Ledger helps individuals **understand, track, and reduce their carbon foo
 | Styling | Tailwind CSS |
 | Charts | Recharts |
 | Validation | Zod |
-| Persistence | localStorage (typed, validated wrapper) |
+| Persistence | localStorage (with version matching and limit checks) |
 | Testing | Vitest + React Testing Library |
 
 ---
@@ -104,9 +153,6 @@ npm run preview
 ```bash
 # Run all tests
 npm test
-
-# Run tests with coverage report
-npm run test:coverage
 
 # Run tests in watch mode (development)
 npm run test:watch
@@ -167,37 +213,6 @@ All factors are approximate and intended for **personal awareness only** — not
 
 ---
 
-## 📁 Project Structure
-
-```
-carbon-ledger/
-├── src/
-│   ├── components/        # React UI components
-│   │   ├── Dashboard/
-│   │   ├── LogActivity/
-│   │   ├── Insights/
-│   │   ├── History/
-│   │   └── Achievements/
-│   ├── utils/
-│   │   ├── calculations.ts   # Pure emission calculation functions
-│   │   └── insights.ts       # Rules-based recommendation engine
-│   ├── data/
-│   │   └── emissionFactors.ts  # Documented emission constants
-│   ├── hooks/
-│   │   └── useActivityLog.ts   # State management hook
-│   ├── types/
-│   │   └── index.ts            # TypeScript interfaces
-│   └── storage/
-│       └── localStorage.ts     # Type-safe, validated storage wrapper
-├── tests/                  # Vitest test suites
-├── public/
-├── README.md
-├── SECURITY.md
-└── vite.config.ts
-```
-
----
-
 ## ♿ Accessibility
 
 Carbon Ledger is built to meet **WCAG 2.1 AA** standards:
@@ -214,37 +229,21 @@ Carbon Ledger is built to meet **WCAG 2.1 AA** standards:
 
 ---
 
-## 🔒 Security
+## 🔒 Security & Quality Engineering
 
-See [`SECURITY.md`](./SECURITY.md) for full details. Key choices:
+See [`SECURITY.md`](./SECURITY.md) for full details. Key safeguards in Attempt 2:
 
-- **Input validation** — all user input validated via Zod schemas before storage or calculation. Out-of-range and malformed values are rejected with friendly UI feedback.
-- **No unsafe HTML** — zero use of `dangerouslySetInnerHTML`, `eval`, or dynamic `Function()` anywhere in the codebase.
-- **Resilient storage** — the localStorage wrapper catches and handles JSON parse errors and corrupted data gracefully, falling back to an empty state without crashing the UI.
-- **No secrets** — the app is fully client-side with no API keys, tokens, or backend credentials of any kind.
-
----
-
-## 🌐 Deployment
-
-Carbon Ledger produces a fully static build (`npm run build`) compatible with:
-
-- **Vercel** — connect the GitHub repo, it auto-detects Vite and deploys
-- **Netlify** — drag-and-drop the `dist/` folder or connect via Git
-- **GitHub Pages** — set the publish directory to `dist/`
-
-No server, no database, no environment variables required.
+- **Input Sanitization & Coercion**: Built with Zod to intercept NaN/Infinity values, strip leading/trailing spaces, and enforce reasonable limits on all entries (e.g. max distance of 1000 km/day).
+- **Secure Persistence Layer**:
+  - **Storage Bounds**: Restricts storage usage to 4MB max to prevent Denial of Service (DoS) through disk filling.
+  - **Data Schema Verification**: Automatically verifies the version of stored data (`1.0.0`) and sanitizes data against strict Zod parsing rules on both reads and writes.
+  - **Rate Limiting**: Throws validation errors if users attempt to register more than 50 entries for a single date, preventing memory consumption attacks.
+- **Render Crash Protection**: Wrap-around `<ErrorBoundary>` catches component lifecycle errors (such as Recharts size glitches) and mounts a fallback layout without stopping the host app.
+- **Strict Content Security Policy (CSP)**: Includes standard CSP tags in `index.html` enforcing origin control on styles, scripts, fonts, and data connections.
+- **Modular Refactoring**: All logging subforms are extracted into single-purpose components to improve code quality, readability, and testing boundaries.
 
 ---
 
 ## 📜 License
 
-MIT — free to use, modify, and distribute.
-
----
-
-## 🙏 Acknowledgements
-
-Built for **PromptWars: Virtual Challenge 3 — Carbon Footprint Awareness Platform** by Hack2Skill × Google for Developers.
-
-Emission factors derived from publicly available sources including CEA (Central Electricity Authority of India) grid emission data and peer-reviewed dietary footprint research.
+MIT — free to use, modify, and distribute. See the [LICENSE](./LICENSE) file for details.
