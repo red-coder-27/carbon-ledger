@@ -61,6 +61,7 @@ carbon-ledger/
 │   │   ├── ErrorBoundary.tsx     # Render crash-safety wrapper
 │   │   ├── FoodForm.tsx          # Food input form sub-component
 │   │   ├── HistoryView.tsx       # Logs table and Recharts area chart
+│   │   ├── InsightCard.tsx       # Modular recommendation card component
 │   │   ├── InsightsView.tsx      # Ranked actionable recommendations
 │   │   ├── LogActivityView.tsx   # Entry logging tab layout
 │   │   ├── TransportForm.tsx     # Transport input form sub-component
@@ -69,6 +70,8 @@ carbon-ledger/
 │   ├── data/
 │   │   └── emissionFactors.ts    # Documented emission constants
 │   ├── hooks/
+│   │   ├── index.ts              # Custom hook barrel exports
+│   │   ├── useActivityLog.ts     # Activity ledger state management hook
 │   │   └── useDebounce.ts        # Custom debounce utility hook
 │   ├── test/                     # Vitest test files
 │   │   ├── calculations.test.ts
@@ -79,11 +82,14 @@ carbon-ledger/
 │   ├── utils/
 │   │   ├── achievements.ts       # Badge unlocking conditions
 │   │   ├── calculations.ts       # Emission calculation pure formulas
+│   │   ├── index.ts              # Utility barrel exports
 │   │   ├── insights.ts           # Recommendation generation rules
 │   │   ├── storage.ts            # Rate-limited local storage layer
+│   │   ├── treeRingData.ts       # Extracted concentric tree ring calculations
 │   │   └── validation.ts         # Zod schemas & sanitization
 │   ├── App.css
 │   ├── App.tsx
+│   ├── constants.ts              # Central constants config
 │   ├── index.css
 │   └── main.tsx
 ├── LICENSE                # MIT License
