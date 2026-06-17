@@ -4,13 +4,19 @@ import { TreeRingChart } from './TreeRingChart';
 import { NATIONAL_AVERAGE_WEEKLY_CO2, NATIONAL_AVERAGE_MONTHLY_CO2 } from '../data/emissionFactors';
 import { aggregateEmissions } from '../utils/calculations';
 import { BookOpen, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface DashboardViewProps {
-  activities: Activity[];
-  onNavigateToLog: () => void;
-  onNavigateToInsights: () => void;
+  readonly activities: Activity[];
+  readonly onNavigateToLog: () => void;
+  readonly onNavigateToInsights: () => void;
 }
 
+/**
+ * Renders the dashboard view including the signature tree-ring chart, carbon footprint totals, and baseline comparison.
+ * @param {DashboardViewProps} props - The component props
+ * @returns {React.ReactElement} The dashboard overview page
+ */
 export const DashboardView: React.FC<DashboardViewProps> = ({
   activities,
   onNavigateToLog,
@@ -19,7 +25,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [period, setPeriod] = useState<'week' | 'month'>('week');
 
   // Filter activities based on the selected period (relative to today's date)
-  const filteredActivities = useMemo(() => {
+  const filteredActivities = useMemo((): Activity[] => {
     const today = new Date();
     today.setHours(23, 59, 59, 999); // end of today
     
@@ -31,7 +37,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       cutoff.setDate(today.getDate() - 30);
     }
 
-    return activities.filter(act => {
+    return activities.filter((act: Activity) => {
       const parts = act.date.split('-');
       if (parts.length !== 3) return false;
       const year = parseInt(parts[0], 10);
@@ -53,7 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const isBelowAverage = emissionsSummary.total <= baseline;
 
   // Dynamic summary sentence generation
-  const summarySentence = useMemo(() => {
+  const summarySentence = useMemo((): string => {
     if (filteredActivities.length === 0) {
       return "Your journal is empty for this period. Log today's activities to see your environmental footprint.";
     }
@@ -139,13 +145,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <h3 className="text-sm font-semibold text-ink uppercase tracking-wider self-start mb-4">
             Carbon Rings breakdown
           </h3>
-          <TreeRingChart
-            transport={emissionsSummary.transport}
-            energy={emissionsSummary.energy}
-            food={emissionsSummary.food}
-            waste={emissionsSummary.waste}
-            total={emissionsSummary.total}
-          />
+          <ErrorBoundary>
+            <TreeRingChart
+              transport={emissionsSummary.transport}
+              energy={emissionsSummary.energy}
+              food={emissionsSummary.food}
+              waste={emissionsSummary.waste}
+              total={emissionsSummary.total}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* Context stats and summary */}

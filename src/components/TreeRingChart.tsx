@@ -1,13 +1,29 @@
 import React from 'react';
 
 interface TreeRingChartProps {
-  transport: number;
-  energy: number;
-  food: number;
-  waste: number;
-  total: number;
+  readonly transport: number;
+  readonly energy: number;
+  readonly food: number;
+  readonly waste: number;
+  readonly total: number;
 }
 
+interface TreeRingData {
+  readonly id: string;
+  readonly name: string;
+  readonly radius: number;
+  readonly strokeWidth: number;
+  readonly color: string;
+  readonly percentage: number;
+  readonly value: number;
+  readonly bgClass: string;
+}
+
+/**
+ * Renders a circular concentric tree-ring visualization of carbon emissions.
+ * @param {TreeRingChartProps} props - The component props containing emissions per category
+ * @returns {React.ReactElement} The circular tree-ring chart component
+ */
 export const TreeRingChart: React.FC<TreeRingChartProps> = ({
   transport,
   energy,
@@ -25,7 +41,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
   const pctWaste = (waste / safeTotal) * 100;
 
   // Ring configurations: radius, stroke width, color, percentage, category name
-  const rings = [
+  const rings: readonly TreeRingData[] = [
     {
       id: 'transport',
       name: 'Transport',
@@ -33,7 +49,8 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       strokeWidth: 10,
       color: '#C75D3A', // Clay
       percentage: pctTransport,
-      value: transport
+      value: transport,
+      bgClass: 'bg-clay'
     },
     {
       id: 'energy',
@@ -42,7 +59,8 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       strokeWidth: 9,
       color: '#6B8E7F', // Moss
       percentage: pctEnergy,
-      value: energy
+      value: energy,
+      bgClass: 'bg-moss'
     },
     {
       id: 'food',
@@ -51,7 +69,8 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       strokeWidth: 8,
       color: '#1B3A2B', // Ink
       percentage: pctFood,
-      value: food
+      value: food,
+      bgClass: 'bg-ink'
     },
     {
       id: 'waste',
@@ -60,7 +79,8 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
       strokeWidth: 7,
       color: '#4F8A5B', // Leaf
       percentage: pctWaste,
-      value: waste
+      value: waste,
+      bgClass: 'bg-leaf'
     }
   ];
 
@@ -106,10 +126,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                className="transition-all duration-1000 ease-out"
-                style={{
-                  filter: 'drop-shadow(0.5px 1px 1px rgba(27, 58, 43, 0.15))',
-                }}
+                className="transition-all duration-1000 ease-out drop-shadow-[0.5px_1px_1px_rgba(27,58,43,0.15)]"
               />
             );
           })}
@@ -147,8 +164,7 @@ export const TreeRingChart: React.FC<TreeRingChartProps> = ({
         {rings.map((ring) => (
           <div key={`legend-${ring.id}`} className="flex items-center space-x-2">
             <span
-              className="w-3.5 h-3.5 rounded-full inline-block"
-              style={{ backgroundColor: ring.color }}
+              className={`w-3.5 h-3.5 rounded-full inline-block ${ring.bgClass}`}
             />
             <span className="text-graphite font-medium">
               {ring.name}: <span className="font-mono-journal text-ink">{ring.value.toFixed(1)} kg</span> ({ring.percentage.toFixed(0)}%)

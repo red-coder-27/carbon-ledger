@@ -3,9 +3,14 @@ import { ACHIEVEMENTS_LIST, Badge } from '../utils/achievements';
 import { BookOpen, Flame, Compass, ChevronDown, Recycle, Sparkles, Lock } from 'lucide-react';
 
 interface AchievementsViewProps {
-  unlockedState: Record<string, string | null>;
+  readonly unlockedState: Record<string, string | null>;
 }
 
+/**
+ * Renders the field badges and milestones milestones panel.
+ * @param {AchievementsViewProps} props - Component props containing unlocked achievements state
+ * @returns {React.ReactElement} The achievements list view
+ */
 export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedState }) => {
   // Map icon names to components
   const iconMap: Record<string, React.ReactNode> = {
@@ -16,7 +21,12 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedStat
     Recycle: <Recycle className="w-8 h-8" />
   };
 
-  const getStatusText = (badgeId: string) => {
+  /**
+   * Generates localized unlock status text.
+   * @param {string} badgeId - The ID of the badge
+   * @returns {string} The unlock date or 'Locked' status text
+   */
+  const getStatusText = (badgeId: string): string => {
     const unlockDate = unlockedState[badgeId];
     if (unlockDate) {
       const formatted = new Date(unlockDate).toLocaleDateString('en-IN', {
@@ -54,11 +64,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ unlockedStat
               className={`bg-white border-2 rounded-xl p-5 shadow-sm transition-all duration-300 relative overflow-hidden flex items-center space-x-5 ${
                 isUnlocked 
                   ? 'border-leaf/40 hover:border-leaf/60' 
-                  : 'border-moss/10 opacity-75'
+                  : 'border-moss/10 opacity-75 grayscale-[30%]'
               }`}
-              style={{
-                filter: isUnlocked ? 'none' : 'grayscale(30%)'
-              }}
             >
               {/* Colored left strip */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUnlocked ? 'bg-leaf' : 'bg-moss/30'}`} />

@@ -4,9 +4,14 @@ import { generateInsights } from '../utils/insights';
 import { Lightbulb, TrendingDown, Bike, Zap, Apple, Trash2, HelpCircle } from 'lucide-react';
 
 interface InsightsViewProps {
-  activities: Activity[];
+  readonly activities: Activity[];
 }
 
+/**
+ * Renders the tailored recommendations and carbon insights based on logged activities.
+ * @param {InsightsViewProps} props - The component props containing the activity log
+ * @returns {React.ReactElement} The personal insights page
+ */
 export const InsightsView: React.FC<InsightsViewProps> = ({ activities }) => {
   const insights = useMemo(() => {
     return generateInsights(activities);

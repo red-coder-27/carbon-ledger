@@ -1,16 +1,17 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { LogActivityView } from '../components/LogActivityView';
 import { DashboardView } from '../components/DashboardView';
 import { InsightsView } from '../components/InsightsView';
 import { Activity } from '../types';
+import React from 'react';
 
 // Mock Recharts to avoid ResizeObserver/JSDOM canvas size errors
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => <div className="recharts-responsive">{children}</div>,
-  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
+  ResponsiveContainer: ({ children }: { readonly children: React.ReactNode }) => <div className="recharts-responsive">{children}</div>,
+  AreaChart: ({ children }: { readonly children: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
   Area: () => <div />,
-  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
+  LineChart: ({ children }: { readonly children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
   Line: () => <div />,
   XAxis: () => <div />,
   YAxis: () => <div />,
@@ -32,7 +33,8 @@ describe('Component Testing Suite', () => {
       expect(screen.getByRole('button', { name: /Energy/i })).toBeInTheDocument();
     });
 
-    it('displays validation error on negative distance in transport mode', async () => {
+    it('displays validation error on negative distance in transport mode', () => {
+      vi.useFakeTimers();
       render(<LogActivityView onAddActivity={() => {}} />);
       
       const distanceInput = screen.getByLabelText(/Distance Traveled/i);
@@ -40,12 +42,19 @@ describe('Component Testing Suite', () => {
       
       const submitBtn = screen.getByRole('button', { name: /Record Entry in Ledger/i });
       fireEvent.submit(submitBtn.closest('form')!);
+      
+      // Fast-forward to execute the debounced submission inside act
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
 
-      const errorMsg = await screen.findByText('Distance cannot be negative');
+      const errorMsg = screen.getByText('Value cannot be negative');
       expect(errorMsg).toBeInTheDocument();
+      vi.useRealTimers();
     });
 
     it('triggers callback on valid form submission', () => {
+      vi.useFakeTimers();
       const mockAdd = vi.fn();
       render(<LogActivityView onAddActivity={mockAdd} />);
       
@@ -54,10 +63,16 @@ describe('Component Testing Suite', () => {
       
       const submitBtn = screen.getByRole('button', { name: /Record Entry in Ledger/i });
       fireEvent.submit(submitBtn.closest('form')!);
+      
+      // Fast-forward to execute the debounced submission inside act
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
 
       expect(mockAdd).toHaveBeenCalled();
       expect(mockAdd.mock.calls[0][0].category).toBe('transport');
       expect(mockAdd.mock.calls[0][0].details.distance).toBe(45);
+      vi.useRealTimers();
     });
   });
 

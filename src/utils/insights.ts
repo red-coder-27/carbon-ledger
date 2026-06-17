@@ -1,15 +1,21 @@
-import { Activity, Recommendation, ActivityCategory } from '../types';
+import { Activity, Recommendation, ActivityCategory, TransportDetails, EnergyDetails, FoodDetails, WasteDetails } from '../types';
 import { EMISSION_FACTORS } from '../data/emissionFactors';
+
+interface InsightsResult {
+  readonly highestCategory: ActivityCategory | 'none';
+  readonly recommendations: readonly Recommendation[];
+  readonly categoryTotals: Record<ActivityCategory, number>;
+}
 
 /**
  * Generates recommendations based on the user's logged activities in the last 7 days.
  * If no activities exist, it returns a set of default starter recommendations.
+ * @param {Activity[]} activities - The full array of user activities
+ * @returns {InsightsResult} The generated insights and tailored recommendations
+ * @example
+ * generateInsights([]) // returns default starter recommendations
  */
-export function generateInsights(activities: Activity[]): {
-  highestCategory: ActivityCategory | 'none';
-  recommendations: Recommendation[];
-  categoryTotals: Record<ActivityCategory, number>;
-} {
+export function generateInsights(activities: Activity[]): InsightsResult {
   const categoryTotals = {
     transport: 0,
     energy: 0,
@@ -63,7 +69,7 @@ export function generateInsights(activities: Activity[]): {
   let shortTripsCount = 0; // trips <= 5km by fossil fuel
 
   transportActivities.forEach(a => {
-    const d = a.details as any;
+    const d = a.details as TransportDetails;
     if (!d) return;
     if (d.mode === 'car-petrol') petrolDistance += d.distance;
     if (d.mode === 'car-diesel') dieselDistance += d.distance;
@@ -155,7 +161,7 @@ export function generateInsights(activities: Activity[]): {
   let totalLpg = 0;
 
   energyActivities.forEach(a => {
-    const d = a.details as any;
+    const d = a.details as EnergyDetails;
     if (!d) return;
     totalElectricity += d.electricity || 0;
     totalLpg += d.lpg || 0;
@@ -218,7 +224,7 @@ export function generateInsights(activities: Activity[]): {
   let vegetarianDays = 0;
 
   foodActivities.forEach(a => {
-    const d = a.details as any;
+    const d = a.details as FoodDetails;
     if (!d) return;
     if (d.dietType === 'non-veg-heavy') nonVegHeavyDays += 1;
     if (d.dietType === 'non-veg-moderate') nonVegModDays += 1;
@@ -283,7 +289,7 @@ export function generateInsights(activities: Activity[]): {
   let segregatedWasteDays = 0;
 
   wasteActivities.forEach(a => {
-    const d = a.details as any;
+    const d = a.details as WasteDetails;
     if (!d) return;
     if (d.segregated === false) mixedWasteDays += 1;
     if (d.segregated === true) segregatedWasteDays += 1;
@@ -310,7 +316,7 @@ export function generateInsights(activities: Activity[]): {
       id: 'w_reduce_volume',
       category: 'waste',
       title: 'Reduce Waste through Meal Planning',
-      description: 'High volumes of waste often stem from expired foodstuffs. Planning meals and storage helps cut organic waste volume.',
+      description:highWasteDays.toString() + ' high volume waste days logged. Planning meals and storage helps cut organic waste volume.',
       savings: Number(savings.toFixed(1)),
       actionableText: 'Audit your fridge before shopping and write a strict list to prevent over-buying.'
     });
@@ -354,28 +360,33 @@ export function generateInsights(activities: Activity[]): {
   const orderedRecs = [...highestCategoryRecs, ...otherRecs];
 
   // Slice to get 3-5 recommendations (we'll show top 4 if available)
-  finalRecommendations = orderedRecs.slice(0, 4);
+  let slicedRecs = orderedRecs.slice(0, 4);
 
   // If we ended up with less than 3 recommendations, add some general ones from the highest category or default set
-  if (finalRecommendations.length < 3) {
+  if (slicedRecs.length < 3) {
     const defaultRecs = getDefaultRecommendations();
+    const tempRecs = [...slicedRecs];
     for (const r of defaultRecs) {
-      if (finalRecommendations.length >= 3) break;
-      if (!finalRecommendations.some(fr => fr.id === r.id)) {
-        finalRecommendations.push(r);
+      if (tempRecs.length >= 3) break;
+      if (!tempRecs.some(fr => fr.id === r.id)) {
+        tempRecs.push(r);
       }
     }
+    slicedRecs = tempRecs;
   }
 
   return {
     highestCategory,
     categoryTotals,
-    recommendations: finalRecommendations
+    recommendations: slicedRecs
   };
 }
 
 /**
  * Returns default educational recommendations when no data has been logged.
+ * @returns {Recommendation[]} Standard set of default starter recommendations
+ * @example
+ * getDefaultRecommendations() // returns [ { id: 'def_transit', ... }, ... ]
  */
 export function getDefaultRecommendations(): Recommendation[] {
   return [

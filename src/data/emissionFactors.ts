@@ -10,7 +10,6 @@
  * 
  * Note: These factors are for personal awareness and education purposes, not for formal regulatory or corporate ESG accounting.
  */
-
 export const EMISSION_FACTORS = {
   transport: {
     'car-petrol': 0.192,         // kg CO2e per km
@@ -45,10 +44,32 @@ export const EMISSION_FACTORS = {
   }
 } as const;
 
+/**
+ * Represents the available modes of transport.
+ */
 export type TransportMode = keyof typeof EMISSION_FACTORS.transport;
+
+/**
+ * Represents the available diet types.
+ */
 export type DietType = keyof typeof EMISSION_FACTORS.diet;
+
+/**
+ * Represents the waste volume level options.
+ */
 export type WasteLevel = 'low' | 'medium' | 'high';
 
-export const NATIONAL_AVERAGE_MONTHLY_CO2 = 1900; // 1.9 tons / 1900 kg CO2e per month
+/**
+ * National average monthly carbon footprint of an Indian citizen (kg CO2e).
+ */
+export const NATIONAL_AVERAGE_MONTHLY_CO2 = 1900;
+
+/**
+ * National average weekly carbon footprint of an Indian citizen (kg CO2e).
+ */
 export const NATIONAL_AVERAGE_WEEKLY_CO2 = 1900 * 12 / 52; // ~438.46 kg CO2e per week
+
+/**
+ * National average daily carbon footprint of an Indian citizen (kg CO2e).
+ */
 export const NATIONAL_AVERAGE_DAILY_CO2 = 1900 / 30; // ~63.33 kg CO2e per day

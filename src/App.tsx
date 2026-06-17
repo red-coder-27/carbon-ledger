@@ -5,6 +5,7 @@ import { Activity } from './types';
 import { DashboardView } from './components/DashboardView';
 import { LogActivityView } from './components/LogActivityView';
 import { InsightsView } from './components/InsightsView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { 
   Book, 
   LayoutDashboard, 
@@ -16,16 +17,24 @@ import {
 } from 'lucide-react';
 
 // Lazy load larger subviews to keep the initial bundle small and fast
-const HistoryView = React.lazy(() => 
+const LazyHistoryView = React.lazy(() => 
   import('./components/HistoryView').then(m => ({ default: m.HistoryView }))
 );
-const AchievementsView = React.lazy(() => 
+(LazyHistoryView as unknown as { displayName: string }).displayName = 'LazyHistoryView';
+
+const LazyAchievementsView = React.lazy(() => 
   import('./components/AchievementsView').then(m => ({ default: m.AchievementsView }))
 );
+(LazyAchievementsView as unknown as { displayName: string }).displayName = 'LazyAchievementsView';
 
 type ActiveView = 'dashboard' | 'log-activity' | 'insights' | 'history' | 'achievements';
 
-function App() {
+/**
+ * Main application component that manages navigation state, activity logging,
+ * achievement unlocking, and synchronization with storage.
+ * @returns {React.ReactElement} The main app structure
+ */
+function App(): React.ReactElement {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
 
   // Load activities and achievements from validated localStorage
@@ -33,7 +42,7 @@ function App() {
   const [achievements, setAchievements] = useState<Record<string, string | null>>(() => getSavedAchievements());
 
   // Handle adding a new activity
-  const handleAddActivity = (newActivity: Activity) => {
+  const handleAddActivity = (newActivity: Activity): void => {
     setActivities(prev => {
       const updated = [...prev, newActivity];
       saveActivities(updated);
@@ -50,7 +59,7 @@ function App() {
   };
 
   // Handle deleting an activity
-  const handleDeleteActivity = (id: string) => {
+  const handleDeleteActivity = (id: string): void => {
     setActivities(prev => {
       const updated = prev.filter(act => act.id !== id);
       saveActivities(updated);
@@ -68,7 +77,7 @@ function App() {
   };
 
   // Derive unlocked count
-  const unlockedCount = useMemo(() => {
+  const unlockedCount = useMemo((): number => {
     return Object.values(achievements).filter(Boolean).length;
   }, [achievements]);
 
@@ -170,11 +179,10 @@ function App() {
             <button
               key={tab.id}
               onClick={() => setActiveView(tab.id as ActiveView)}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-md transition-all relative ${
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-md transition-all relative w-1/5 ${
                 isActive ? 'text-clay font-bold scale-105' : 'text-graphite'
               }`}
               aria-current={isActive ? 'page' : undefined}
-              style={{ width: '20%' }}
             >
               {tab.icon}
               <span className="text-[9px] mt-1 tracking-tight truncate w-full text-center">
@@ -198,19 +206,25 @@ function App() {
         <div className="max-w-5xl mx-auto">
           {/* Active View Dispatcher */}
           {activeView === 'dashboard' && (
-            <DashboardView 
-              activities={activities} 
-              onNavigateToLog={() => setActiveView('log-activity')}
-              onNavigateToInsights={() => setActiveView('insights')}
-            />
+            <ErrorBoundary>
+              <DashboardView 
+                activities={activities} 
+                onNavigateToLog={() => setActiveView('log-activity')}
+                onNavigateToInsights={() => setActiveView('insights')}
+              />
+            </ErrorBoundary>
           )}
 
           {activeView === 'log-activity' && (
-            <LogActivityView onAddActivity={handleAddActivity} />
+            <ErrorBoundary>
+              <LogActivityView onAddActivity={handleAddActivity} />
+            </ErrorBoundary>
           )}
 
           {activeView === 'insights' && (
-            <InsightsView activities={activities} />
+            <ErrorBoundary>
+              <InsightsView activities={activities} />
+            </ErrorBoundary>
           )}
 
           {/* Lazy-loaded views inside Suspense boundary */}
@@ -221,14 +235,18 @@ function App() {
             </div>
           }>
             {activeView === 'history' && (
-              <HistoryView 
-                activities={activities} 
-                onDeleteActivity={handleDeleteActivity}
-              />
+              <ErrorBoundary>
+                <LazyHistoryView 
+                  activities={activities} 
+                  onDeleteActivity={handleDeleteActivity}
+                />
+              </ErrorBoundary>
             )}
 
             {activeView === 'achievements' && (
-              <AchievementsView unlockedState={achievements} />
+              <ErrorBoundary>
+                <LazyAchievementsView unlockedState={achievements} />
+              </ErrorBoundary>
             )}
           </Suspense>
         </div>

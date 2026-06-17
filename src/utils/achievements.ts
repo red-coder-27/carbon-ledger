@@ -1,14 +1,20 @@
-import { Activity } from '../types';
+import { Activity, TransportDetails, WasteDetails } from '../types';
 import { NATIONAL_AVERAGE_WEEKLY_CO2 } from '../data/emissionFactors';
 
+/**
+ * Interface representing a badge achievement.
+ */
 export interface Badge {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly icon: string;
 }
 
-export const ACHIEVEMENTS_LIST: Badge[] = [
+/**
+ * List of all achievements in the platform.
+ */
+export const ACHIEVEMENTS_LIST: readonly Badge[] = [
   {
     id: 'first_entry',
     title: 'First Entry',
@@ -39,11 +45,16 @@ export const ACHIEVEMENTS_LIST: Badge[] = [
     description: 'Segregated or recycled waste 5 times.',
     icon: 'Recycle'
   }
-];
+] as const;
 
 /**
  * Checks all activities and returns an updated achievements map (id -> unlockDate or null).
  * It preserves existing unlock dates so achievements aren't "re-earned" with newer dates.
+ * @param {Activity[]} activities - The full user activity log
+ * @param {Record<string, string | null>} currentState - The current unlocked state of achievements
+ * @returns {Record<string, string | null>} The updated achievements state map
+ * @example
+ * checkAchievements([], {}) // returns {}
  */
 export function checkAchievements(
   activities: Activity[],
@@ -57,7 +68,7 @@ export function checkAchievements(
   }
 
   // Helper to unlock a badge if not already unlocked
-  const unlock = (id: string) => {
+  const unlock = (id: string): void => {
     if (!updatedState[id]) {
       updatedState[id] = todayStr;
     }
@@ -96,7 +107,7 @@ export function checkAchievements(
   const greenModes = ['car-ev', 'bus', 'train-metro', 'bicycle', 'walking'];
   const greenCommuteCount = activities.filter(a => {
     if (a.category !== 'transport') return false;
-    const details = a.details as any;
+    const details = a.details as TransportDetails;
     return details && greenModes.includes(details.mode);
   }).length;
 
@@ -122,7 +133,7 @@ export function checkAchievements(
   // 5. Waste Warrior: segregated waste 5 times
   const segregatedCount = activities.filter(a => {
     if (a.category !== 'waste') return false;
-    const details = a.details as any;
+    const details = a.details as WasteDetails;
     return details && details.segregated === true;
   }).length;
 

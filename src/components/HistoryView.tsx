@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Activity, ActivityCategory } from '../types';
+import { Activity, ActivityCategory, TransportDetails, EnergyDetails, FoodDetails, WasteDetails } from '../types';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -13,12 +13,28 @@ import {
   CartesianGrid 
 } from 'recharts';
 import { History, Table, Activity as ChartIcon, Trash2 } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface HistoryViewProps {
-  activities: Activity[];
-  onDeleteActivity: (id: string) => void;
+  readonly activities: Activity[];
+  readonly onDeleteActivity: (id: string) => void;
 }
 
+interface ChartRow {
+  readonly date: string;
+  readonly formattedDate: string;
+  readonly transport: number;
+  readonly energy: number;
+  readonly food: number;
+  readonly waste: number;
+  readonly total: number;
+}
+
+/**
+ * Renders the historical carbon ledger logs and trend charts.
+ * @param {HistoryViewProps} props - The component props containing activities and deletion handler
+ * @returns {React.ReactElement} The history view component
+ */
 export const HistoryView: React.FC<HistoryViewProps> = ({ 
   activities,
   onDeleteActivity
@@ -27,12 +43,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [showTable, setShowTable] = useState<boolean>(false);
 
   // Group activities by date and category
-  const chartData = useMemo(() => {
+  const chartData = useMemo((): ChartRow[] => {
     if (activities.length === 0) return [];
 
     const dateMap: Record<string, Record<ActivityCategory | 'total', number>> = {};
 
-    activities.forEach(act => {
+    activities.forEach((act: Activity) => {
       const dateStr = act.date;
       if (!dateMap[dateStr]) {
         dateMap[dateStr] = {
@@ -67,8 +83,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const categoryColors = {
     transport: '#C75D3A', // Clay
     energy: '#6B8E7F',    // Moss
-    food: '#1B3A2B',    // Ink
-    waste: '#4F8A5B'     // Leaf
+    food: '#1B3A2B',      // Ink
+    waste: '#4F8A5B'      // Leaf
   };
 
   if (activities.length === 0) {
@@ -129,91 +145,93 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </h3>
 
         <div className="w-full h-80" id="emissions-chart-container">
-          <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'stacked' ? (
-              <AreaChart
-                data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
-                <XAxis 
-                  dataKey="formattedDate" 
-                  tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
-                />
-                <YAxis 
-                  tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#FAF6EE', border: '1px solid #6B8E7F', fontFamily: 'Inter' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#1B3A2B' }}
-                />
-                <Legend 
-                  wrapperStyle={{ fontSize: 12, paddingTop: 10 }}
-                  formatter={(value) => <span className="text-ink font-semibold">{categoryLabels[value as ActivityCategory] || value}</span>}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="transport" 
-                  stackId="1" 
-                  stroke={categoryColors.transport} 
-                  fill={categoryColors.transport} 
-                  fillOpacity={0.65} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="energy" 
-                  stackId="1" 
-                  stroke={categoryColors.energy} 
-                  fill={categoryColors.energy} 
-                  fillOpacity={0.65} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="food" 
-                  stackId="1" 
-                  stroke={categoryColors.food} 
-                  fill={categoryColors.food} 
-                  fillOpacity={0.65} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="waste" 
-                  stackId="1" 
-                  stroke={categoryColors.waste} 
-                  fill={categoryColors.waste} 
-                  fillOpacity={0.65} 
-                />
-              </AreaChart>
-            ) : (
-              <LineChart
-                data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
-                <XAxis 
-                  dataKey="formattedDate" 
-                  tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
-                />
-                <YAxis 
-                  tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#FAF6EE', border: '1px solid #6B8E7F', fontFamily: 'Inter' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#1B3A2B' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  name="Total Emissions"
-                  stroke="#C75D3A" 
-                  strokeWidth={3}
-                  activeDot={{ r: 8 }} 
-                  dot={{ stroke: '#C75D3A', strokeWidth: 2, r: 4, fill: '#FAF6EE' }}
-                />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
+          <ErrorBoundary>
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'stacked' ? (
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
+                  <XAxis 
+                    dataKey="formattedDate" 
+                    tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
+                  />
+                  <YAxis 
+                    tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#FAF6EE', border: '1px solid #6B8E7F', fontFamily: 'Inter' }}
+                    labelStyle={{ fontWeight: 'bold', color: '#1B3A2B' }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: 12, paddingTop: 10 }}
+                    formatter={(value) => <span className="text-ink font-semibold">{categoryLabels[value as ActivityCategory] || value}</span>}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="transport" 
+                    stackId="1" 
+                    stroke={categoryColors.transport} 
+                    fill={categoryColors.transport} 
+                    fillOpacity={0.65} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="energy" 
+                    stackId="1" 
+                    stroke={categoryColors.energy} 
+                    fill={categoryColors.energy} 
+                    fillOpacity={0.65} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="food" 
+                    stackId="1" 
+                    stroke={categoryColors.food} 
+                    fill={categoryColors.food} 
+                    fillOpacity={0.65} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="waste" 
+                    stackId="1" 
+                    stroke={categoryColors.waste} 
+                    fill={categoryColors.waste} 
+                    fillOpacity={0.65} 
+                  />
+                </AreaChart>
+              ) : (
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eae5d9" />
+                  <XAxis 
+                    dataKey="formattedDate" 
+                    tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
+                  />
+                  <YAxis 
+                    tick={{ fill: '#4A4A45', fontSize: 11, fontFamily: 'JetBrains Mono' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#FAF6EE', border: '1px solid #6B8E7F', fontFamily: 'Inter' }}
+                    labelStyle={{ fontWeight: 'bold', color: '#1B3A2B' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="total" 
+                    name="Total Emissions"
+                    stroke="#C75D3A" 
+                    strokeWidth={3}
+                    activeDot={{ r: 8 }} 
+                    dot={{ stroke: '#C75D3A', strokeWidth: 2, r: 4, fill: '#FAF6EE' }}
+                  />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </ErrorBoundary>
         </div>
 
         {/* Text screen reader chart explanation */}
@@ -243,7 +261,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-moss/10 font-mono-journal text-xs">
-                {chartData.map((row) => (
+                {chartData.map((row: ChartRow) => (
                   <tr key={row.date} className="hover:bg-paper/30 text-ink">
                     <td className="py-2 px-3 font-sans font-medium">{row.formattedDate}</td>
                     <td className="py-2 px-3 text-right">{row.transport.toFixed(1)}</td>
@@ -267,16 +285,19 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </h3>
         
         <div className="divide-y divide-moss/10 max-h-96 overflow-y-auto pr-2">
-          {activities.slice().sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((act) => {
+          {activities.slice().sort((a: Activity, b: Activity) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((act: Activity) => {
             let label = "";
-            const details = act.details as any;
             if (act.category === 'transport') {
+              const details = act.details as TransportDetails;
               label = `Travelled ${details.distance} km via ${details.mode.replace('car-', '')}`;
             } else if (act.category === 'energy') {
+              const details = act.details as EnergyDetails;
               label = `Used ${details.electricity} kWh electricity and ${details.lpg} LPG refill(s)`;
             } else if (act.category === 'food') {
+              const details = act.details as FoodDetails;
               label = `Followed a ${details.dietType.replace('-',' ')} diet`;
             } else if (act.category === 'waste') {
+              const details = act.details as WasteDetails;
               label = `Generated ${details.level} waste (${details.segregated ? 'segregated' : 'unsegregated'})`;
             }
 

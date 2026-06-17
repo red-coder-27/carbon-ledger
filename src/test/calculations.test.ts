@@ -84,7 +84,7 @@ describe('Emission Calculations Module', () => {
 
   describe('calculateActivityEmissions router helper', () => {
     it('correctly maps and calculates transport activities', () => {
-      const details = { mode: 'two-wheeler', distance: 10 };
+      const details: import('../types').TransportDetails = { mode: 'two-wheeler', distance: 10 };
       expect(calculateActivityEmissions('transport', details)).toBe(0.72);
     });
 
